@@ -11,19 +11,41 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Класс для экспорта данных в формат Excel.
+ * Использует библиотеку Apache POI для работы с Excel файлами.
+ * Экспортирует экспериментальные, интерполяционные и пользовательские точки.
+ *
+ * @author Петрущенко Александр Андреевич
+ * @version 1.0
+ */
 public class FileExporter {
 
+    /**
+     * Экспортирует данные в Excel файл.
+     * Создает файл с одним листом "Все точки", содержащим все типы данных.
+     *
+     * @param experimentalData список экспериментальных точек
+     * @param interpolatedData список интерполяционных точек (уже с рассчитанной температурой)
+     * @param userData список пользовательских точек
+     * @param a коэффициент наклона прямой
+     * @param b коэффициент смещения прямой
+     * @param parentFrame родительское окно для диалогов
+     */
     public static void exportToExcel(List<DataPoint> experimentalData,
-                                     List<DataPoint> interpolatedData,  // УЖЕ содержит рассчитанные температуры!
+                                     List<DataPoint> interpolatedData,
                                      List<DataPoint> userData,
                                      double a, double b,
                                      JFrame parentFrame) {
 
-        // Создаем диалог выбора файла
+        // Создаем диалоговое окно выбора файла
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Сохранить данные в Excel");
-        fileChooser.setSelectedFile(new File("данные_" +
-                new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".xlsx"));
+
+        // Предлагаем имя файла по умолчанию с текущей датой и временем
+        String defaultFileName = "данные_" +
+                new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".xlsx";
+        fileChooser.setSelectedFile(new File(defaultFileName));
 
         // Устанавливаем фильтр для Excel файлов
         fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
@@ -47,32 +69,36 @@ public class FileExporter {
 
             // Добавляем расширение .xlsx если его нет
             String filePath = fileToSave.getAbsolutePath();
-            if (!filePath.toLowerCase().endsWith(".xlsx") && !filePath.toLowerCase().endsWith(".xls")) {
+            if (!filePath.toLowerCase().endsWith(".xlsx") &&
+                    !filePath.toLowerCase().endsWith(".xls")) {
                 fileToSave = new File(filePath + ".xlsx");
             }
 
             try (Workbook workbook = new XSSFWorkbook()) {
-                // Стили для ячеек
+                // Создаем стили для ячеек
                 CellStyle headerStyle = createHeaderStyle(workbook);
                 CellStyle dataStyle = createDataStyle(workbook);
                 CellStyle infoStyle = createInfoStyle(workbook);
 
-                // СОЗДАЕМ ТОЛЬКО ОДИН ЛИСТ "Все точки"
+                // Создаем лист "Все точки" и заполняем его данными
                 Sheet allPointsSheet = workbook.createSheet("Все точки");
                 createSimpleTable(allPointsSheet, experimentalData,
-                        interpolatedData, userData, a, b, headerStyle, dataStyle, infoStyle);
+                        interpolatedData, userData, a, b,
+                        headerStyle, dataStyle, infoStyle);
 
-                // Сохраняем файл
+                // Сохраняем файл на диск
                 try (FileOutputStream fileOut = new FileOutputStream(fileToSave)) {
                     workbook.write(fileOut);
                 }
 
+                // Показываем сообщение об успешном экспорте
                 JOptionPane.showMessageDialog(parentFrame,
                         "Данные успешно сохранены в Excel файл:\n" + fileToSave.getAbsolutePath(),
                         "Экспорт завершен",
                         JOptionPane.INFORMATION_MESSAGE);
 
             } catch (IOException e) {
+                // Обрабатываем ошибки ввода-вывода
                 JOptionPane.showMessageDialog(parentFrame,
                         "Ошибка при сохранении Excel файла:\n" + e.getMessage(),
                         "Ошибка экспорта",
@@ -81,26 +107,41 @@ public class FileExporter {
         }
     }
 
-    // ПРОСТАЯ ТАБЛИЦА С СОХРАНЕНИЕМ ТЕМПЕРАТУР
+    /**
+     * Создает простую таблицу на листе Excel.
+     * Таблица содержит все типы точек: экспериментальные, интерполяционные и пользовательские.
+     *
+     * @param sheet лист Excel для заполнения
+     * @param experimentalData список экспериментальных точек
+     * @param interpolatedData список интерполяционных точек
+     * @param userData список пользовательских точек
+     * @param a коэффициент наклона прямой
+     * @param b коэффициент смещения прямой
+     * @param headerStyle стиль для заголовков таблицы
+     * @param dataStyle стиль для данных таблицы
+     * @param infoStyle стиль для информационной строки
+     */
     private static void createSimpleTable(Sheet sheet,
                                           List<DataPoint> experimentalData,
-                                          List<DataPoint> interpolatedData,  // УЖЕ содержит температуры!
+                                          List<DataPoint> interpolatedData,
                                           List<DataPoint> userData,
                                           double a, double b,
-                                          CellStyle headerStyle, CellStyle dataStyle, CellStyle infoStyle) {
+                                          CellStyle headerStyle,
+                                          CellStyle dataStyle,
+                                          CellStyle infoStyle) {
 
         int rowIndex = 0;
 
-        // ИНФОРМАЦИЯ ОБ УРАВНЕНИИ (опционально)
+        // Строка с уравнением регрессии
         Row infoRow = sheet.createRow(rowIndex++);
         infoRow.createCell(0).setCellValue("Уравнение: T = " +
                 String.format("%.4f", a) + " * t + " + String.format("%.4f", b));
         infoRow.getCell(0).setCellStyle(infoStyle);
 
-        // ПУСТАЯ СТРОКА
+        // Пустая строка для разделения
         rowIndex++;
 
-        // ЗАГОЛОВКИ ТАБЛИЦЫ
+        // Заголовки таблицы
         Row headerRow = sheet.createRow(rowIndex++);
         String[] headers = {"Тип точки", "Время (час)", "Температура (°C)"};
         for (int i = 0; i < headers.length; i++) {
@@ -109,7 +150,7 @@ public class FileExporter {
             cell.setCellStyle(headerStyle);
         }
 
-        // 1. ЭКСПЕРИМЕНТАЛЬНЫЕ ТОЧКИ
+        // Экспериментальные точки
         for (DataPoint point : experimentalData) {
             Row dataRow = sheet.createRow(rowIndex++);
             dataRow.createCell(0).setCellValue("Экспериментальная");
@@ -121,19 +162,19 @@ public class FileExporter {
             }
         }
 
-        // 2. ИНТЕРПОЛЯЦИОННЫЕ ТОЧКИ (С СОХРАНЕННОЙ ТЕМПЕРАТУРОЙ!)
+        // Интерполяционные точки (сохраняем рассчитанную температуру)
         for (DataPoint point : interpolatedData) {
             Row dataRow = sheet.createRow(rowIndex++);
             dataRow.createCell(0).setCellValue("Интерполяция");
             dataRow.createCell(1).setCellValue(point.getTime());
-            dataRow.createCell(2).setCellValue(point.getTemperature());  // СОХРАНЯЕМ ТЕМПЕРАТУРУ!
+            dataRow.createCell(2).setCellValue(point.getTemperature());
 
             for (int i = 0; i < 3; i++) {
                 dataRow.getCell(i).setCellStyle(dataStyle);
             }
         }
 
-        // 3. ПОЛЬЗОВАТЕЛЬСКИЕ ТОЧКИ
+        // Пользовательские точки
         for (DataPoint point : userData) {
             Row dataRow = sheet.createRow(rowIndex++);
             dataRow.createCell(0).setCellValue("Пользовательская");
@@ -145,17 +186,23 @@ public class FileExporter {
             }
         }
 
-        // АВТОНАСТРОЙКА ШИРИНЫ КОЛОНОК
+        // Автоматически настраиваем ширину колонок
         for (int i = 0; i < 3; i++) {
             sheet.autoSizeColumn(i);
         }
     }
 
-    // ПРОСТЫЕ СТИЛИ
+    /**
+     * Создает стиль для заголовков таблицы Excel.
+     * Заголовки выделены жирным шрифтом и имеют границы.
+     *
+     * @param workbook книга Excel
+     * @return стиль для заголовков
+     */
     private static CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
-        font.setBold(true);
+        font.setBold(true); // Жирный шрифт для заголовков
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
@@ -166,6 +213,13 @@ public class FileExporter {
         return style;
     }
 
+    /**
+     * Создает стиль для данных таблицы Excel.
+     * Данные центрированы и имеют тонкие границы.
+     *
+     * @param workbook книга Excel
+     * @return стиль для данных
+     */
     private static CellStyle createDataStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         style.setAlignment(HorizontalAlignment.CENTER);
@@ -177,10 +231,17 @@ public class FileExporter {
         return style;
     }
 
+    /**
+     * Создает стиль для информационной строки Excel.
+     * Информация отображается курсивным шрифтом.
+     *
+     * @param workbook книга Excel
+     * @return стиль для информационной строки
+     */
     private static CellStyle createInfoStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
-        font.setItalic(true);
+        font.setItalic(true); // Курсивный шрифт для информации
         style.setFont(font);
         return style;
     }

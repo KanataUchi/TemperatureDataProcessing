@@ -6,20 +6,33 @@ import java.awt.*;
 /**
  * Класс SplashScreen представляет собой стартовый экран приложения.
  * Отображает информацию о курсовой работе и университете с прогресс-баром загрузки.
- * Пользователь может пропустить заставку с помощью кнопки "Пропустить".
  *
  * @author Петрущенко Александр Андреевич
  * @version 1.0
  */
 public class SplashScreen extends JWindow {
+    /**
+     * Прогресс-бар для отображения процесса загрузки.
+     */
     private JProgressBar progressBar;
-    private Timer timer;
-    private int progress = 0;
-    private boolean isSkipped = false; // Флаг для отслеживания пропуска
 
     /**
-     * Конструктор класса SplashScreen.
-     * Инициализирует все компоненты интерфейса и запускает таймер прогресса.
+     * Таймер для анимации прогресс-бара.
+     */
+    private Timer timer;
+
+    /**
+     * Текущее значение прогресса (0-100).
+     */
+    private int progress = 0;
+
+    /**
+     * Флаг для отслеживания нажатия кнопки "Пропустить".
+     */
+    private boolean isSkipped = false;
+
+    /**
+     * Конструктор создает и настраивает стартовый экран.
      */
     public SplashScreen() {
         // Создаем панель
@@ -28,15 +41,42 @@ public class SplashScreen extends JWindow {
         panel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
 
         // Заголовок университета
+        JPanel headerPanel = createHeaderPanel();
+
+        // Основная информация о курсовой работе
+        JPanel infoPanel = createInfoPanel();
+
+        // Панель с прогресс-баром и кнопкой
+        JPanel bottomPanel = createBottomPanel();
+
+        // Собираем интерфейс
+        panel.add(headerPanel, BorderLayout.NORTH);
+        panel.add(infoPanel, BorderLayout.CENTER);
+        panel.add(bottomPanel, BorderLayout.SOUTH);
+
+        setContentPane(panel);
+        setSize(900, 800);
+        setLocationRelativeTo(null); // Центрируем окно
+
+        // Запускаем таймер для прогресс-бара
+        startTimer();
+    }
+
+    /**
+     * Создает панель заголовка с логотипом и информацией об университете.
+     *
+     * @return панель заголовка
+     */
+    private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
         headerPanel.setBackground(Color.WHITE);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Логотип
+        // Логотип университета
         JLabel logoLabel = createPhotoLabel();
 
-        // Название университета
+        // Название университета и факультета
         JLabel universityLabel = new JLabel("Белорусский национальный технический университет");
         universityLabel.setFont(new Font("Arial", Font.BOLD, 14));
         universityLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -57,12 +97,20 @@ public class SplashScreen extends JWindow {
         headerPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         headerPanel.add(departmentLabel);
 
-        // Основная информация
+        return headerPanel;
+    }
+    /**
+     * Создает панель с информацией о курсовой работе.
+     *
+     * @return панель с информацией
+     */
+    private JPanel createInfoPanel() {
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setBackground(Color.WHITE);
         infoPanel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
 
+        // Заголовок и тема курсовой
         JLabel titleLabel = new JLabel("КУРСОВАЯ РАБОТА", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -79,6 +127,7 @@ public class SplashScreen extends JWindow {
         variantLabel.setFont(new Font("Arial", Font.BOLD, 14));
         variantLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Информация о студенте
         JLabel studentLabel = new JLabel("Выполнил: студент группы 10702423");
         studentLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         studentLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -87,6 +136,7 @@ public class SplashScreen extends JWindow {
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Информация о преподавателе
         JLabel teacherLabel = new JLabel("Преподаватель: к.ф.-м.н., доц.");
         teacherLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         teacherLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -95,10 +145,12 @@ public class SplashScreen extends JWindow {
         teacherNameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         teacherNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Год выполнения
         JLabel yearLabel = new JLabel("Минск, 2025");
         yearLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         yearLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Добавляем все компоненты с отступами
         infoPanel.add(titleLabel);
         infoPanel.add(Box.createRigidArea(new Dimension(0, 15)));
         infoPanel.add(subjectLabel);
@@ -114,7 +166,16 @@ public class SplashScreen extends JWindow {
         infoPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         infoPanel.add(yearLabel);
 
-        // Прогресс-бар
+        return infoPanel;
+    }
+
+    /**
+     * Создает нижнюю панель с прогресс-баром и кнопкой пропуска.
+     *
+     * @return нижняя панель
+     */
+    private JPanel createBottomPanel() {
+        // Прогресс-бар для отображения загрузки
         progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(true);
         progressBar.setForeground(new Color(0, 102, 204));
@@ -136,17 +197,7 @@ public class SplashScreen extends JWindow {
         bottomPanel.add(progressBar, BorderLayout.CENTER);
         bottomPanel.add(buttonPanel, BorderLayout.EAST);
 
-        // Собираем интерфейс
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(infoPanel, BorderLayout.CENTER);
-        panel.add(bottomPanel, BorderLayout.SOUTH);
-
-        setContentPane(panel);
-        setSize(900, 800);
-        setLocationRelativeTo(null); // Центрируем окно
-
-        // Запускаем таймер для прогресс-бара
-        startTimer();
+        return bottomPanel;
     }
 
     /**
@@ -165,6 +216,7 @@ public class SplashScreen extends JWindow {
             progressBar.setValue(progress);
             progressBar.setString("Загрузка: " + progress + "%");
 
+            // Завершение загрузки при достижении 100%
             if (progress >= 100) {
                 timer.stop();
                 closeAndOpenMain();
@@ -184,11 +236,11 @@ public class SplashScreen extends JWindow {
         photoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         try {
-            // Пробуем загрузить картинку
+            // Пробуем загрузить картинку из ресурсов
             ImageIcon originalIcon = loadImageFromResources();
 
             if (originalIcon != null) {
-                // Масштабируем картинку
+                // Масштабируем картинку до нужного размера
                 Image image = originalIcon.getImage();
                 Image scaledImage = image.getScaledInstance(283, 283, Image.SCALE_SMOOTH);
                 ImageIcon scaledIcon = new ImageIcon(scaledImage);
@@ -200,7 +252,7 @@ public class SplashScreen extends JWindow {
             }
 
         } catch (Exception e) {
-            // Запасной вариант - эмодзи
+            // Запасной вариант - эмодзи при ошибке загрузки
             photoLabel.setText("📊");
             photoLabel.setFont(new Font("Arial", Font.PLAIN, 60));
         }
@@ -215,6 +267,7 @@ public class SplashScreen extends JWindow {
      */
     private ImageIcon loadImageFromResources() {
         try {
+            // Пытаемся загрузить логотип из папки resources
             return new ImageIcon("src/resources/logo.png");
         } catch (Exception e) {
             return null;
@@ -229,7 +282,7 @@ public class SplashScreen extends JWindow {
         // Устанавливаем флаг, что кнопка была нажата
         isSkipped = true;
 
-        // Останавливаем таймер
+        // Останавливаем таймер прогресса
         if (timer != null && timer.isRunning()) {
             timer.stop();
         }
@@ -239,11 +292,12 @@ public class SplashScreen extends JWindow {
 
     /**
      * Закрывает стартовый экран и открывает главное окно приложения.
+     * Выполняется в потоке обработки событий EDT.
      */
     private void closeAndOpenMain() {
         dispose(); // Закрываем splash screen
 
-        // Запускаем главное окно в EDT
+        // Запускаем главное окно в потоке обработки событий
         SwingUtilities.invokeLater(() -> {
             new MainFrame().setVisible(true);
         });

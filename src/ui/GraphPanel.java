@@ -7,19 +7,51 @@ import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Панель для отображения графика экспериментальных данных.
+ * Рисует оси координат, экспериментальные точки, аппроксимирующую прямую,
+ * интерполяционные и пользовательские точки.
+ *
+ * @author Петрущенко Александр Андреевич
+ * @version 1.0
+ */
 public class GraphPanel extends JPanel {
+    /**
+     * Список экспериментальных точек данных.
+     */
     private List<DataPoint> experimentalData;
+
+    /**
+     * Коэффициенты уравнения прямой: T = a*t + b.
+     */
     private double a, b;
+
+    /**
+     * Времена для интерполяции температуры.
+     */
     private List<Double> interpolationTimes;
+
+    /**
+     * Пользовательские точки, добавленные вручную.
+     */
     private List<DataPoint> userPoints;
 
-    // Простые цвета
+    // Цвета для различных элементов графика
     private final Color EXPERIMENTAL_COLOR = Color.BLUE;
     private final Color LINE_COLOR = Color.RED;
     private final Color INTERPOLATION_COLOR = Color.GREEN;
     private final Color USER_POINT_COLOR = Color.MAGENTA;
 
-    public GraphPanel(List<DataPoint> experimentalData, double a, double b, List<Double> interpolationTimes) {
+    /**
+     * Создает новую панель графика с заданными данными.
+     *
+     * @param experimentalData список экспериментальных точек
+     * @param a коэффициент наклона прямой
+     * @param b коэффициент смещения прямой
+     * @param interpolationTimes список времен для интерполяции
+     */
+    public GraphPanel(List<DataPoint> experimentalData, double a, double b,
+                      List<Double> interpolationTimes) {
         this.experimentalData = experimentalData;
         this.a = a;
         this.b = b;
@@ -31,37 +63,58 @@ public class GraphPanel extends JPanel {
         setBorder(BorderFactory.createLineBorder(Color.GRAY));
     }
 
+    /**
+     * Добавляет пользовательскую точку на график.
+     *
+     * @param время точки
+     * @param температура точки
+     */
     public void addUserPoint(double time, double temperature) {
         DataPoint newPoint = new DataPoint(time, temperature);
         userPoints.add(newPoint);
-        repaint();
+        repaint(); // Перерисовываем график
     }
 
+    /**
+     * Очищает все пользовательские точки с графика.
+     */
     public void clearUserPoints() {
         userPoints.clear();
         repaint();
     }
 
+    /**
+     * Переопределяет метод отрисовки панели.
+     * Рисует график с экспериментальными данными.
+     *
+     * @param g графический контекст для рисования
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // Включаем сглаживание
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Включаем сглаживание для более качественной отрисовки
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
 
         drawGraph(g2d);
     }
 
+    /**
+     * Рисует график с осями, точками и линией регрессии.
+     *
+     * @param g2d графический контекст 2D
+     */
     private void drawGraph(Graphics2D g2d) {
-        int padding = 80;
+        int padding = 80; // Отступ от краев панели
         int width = getWidth() - 2 * padding;
         int height = getHeight() - 2 * padding;
 
-        // Рисуем оси
+        // Рисуем оси координат
         g2d.setColor(Color.BLACK);
-        g2d.drawLine(padding, padding, padding, padding + height);
-        g2d.drawLine(padding, padding + height, padding + width, padding + height);
+        g2d.drawLine(padding, padding, padding, padding + height); // Ось Y
+        g2d.drawLine(padding, padding + height, padding + width, padding + height); // Ось X
 
         // Добавляем стрелки на концах осей
         drawAxisArrows(g2d, padding, padding, padding, padding + height);
@@ -71,7 +124,7 @@ public class GraphPanel extends JPanel {
         g2d.setFont(new Font("Arial", Font.BOLD, 14));
         g2d.drawString("Время, час", padding + width / 2 - 30, padding + height + 50);
 
-        // Подпись для оси Y (Температура) - вертикальный текст
+        // Подпись для оси Y (вертикальный текст)
         Font originalFont = g2d.getFont();
         AffineTransform originalTransform = g2d.getTransform();
 
@@ -82,12 +135,44 @@ public class GraphPanel extends JPanel {
         g2d.setTransform(originalTransform);
         g2d.setFont(originalFont);
 
-        // Диапазоны значений
+        // Определяем диапазоны значений для масштабирования
+        double[] ranges = calculateValueRanges();
+        double minTime = ranges[0], maxTime = ranges[1];
+        double minTemp = ranges[2], maxTemp = ranges[3];
+
+        // Масштабирующие коэффициенты
+        double xScale = width / (maxTime - minTime);
+        double yScale = height / (maxTemp - minTemp);
+
+        // Рисуем деления и сетку на осях
+        drawAxisTicks(g2d, padding, width, height, minTime, maxTime,
+                minTemp, maxTemp, xScale, yScale);
+
+        // Рисуем экспериментальные точки
+        drawExperimentalPoints(g2d, padding, height, minTime, minTemp, xScale, yScale);
+
+        // Рисуем аппроксимирующую прямую
+        drawRegressionLine(g2d, padding, width, height, minTime, minTemp, xScale, yScale);
+
+        // Рисуем интерполяционные точки
+        drawInterpolationPoints(g2d, padding, height, minTime, minTemp, xScale, yScale);
+
+        // Рисуем пользовательские точки
+        drawUserPoints(g2d, padding, height, minTime, minTemp, xScale, yScale);
+    }
+
+    /**
+     * Рассчитывает минимальные и максимальные значения для масштабирования графика.
+     *
+     * @return массив [minTime, maxTime, minTemp, maxTemp]
+     */
+    private double[] calculateValueRanges() {
         double minTime = Double.MAX_VALUE;
         double maxTime = Double.MIN_VALUE;
         double minTemp = Double.MAX_VALUE;
         double maxTemp = Double.MIN_VALUE;
 
+        // Находим экстремумы среди экспериментальных точек
         for (DataPoint point : experimentalData) {
             minTime = Math.min(minTime, point.getTime());
             maxTime = Math.max(maxTime, point.getTime());
@@ -95,6 +180,7 @@ public class GraphPanel extends JPanel {
             maxTemp = Math.max(maxTemp, point.getTemperature());
         }
 
+        // Добавляем пользовательские точки
         for (DataPoint userPoint : userPoints) {
             minTime = Math.min(minTime, userPoint.getTime());
             maxTime = Math.max(maxTime, userPoint.getTime());
@@ -102,6 +188,7 @@ public class GraphPanel extends JPanel {
             maxTemp = Math.max(maxTemp, userPoint.getTemperature());
         }
 
+        // Добавляем интерполяционные точки
         for (Double time : interpolationTimes) {
             double temp = a * time + b;
             minTime = Math.min(minTime, time);
@@ -110,12 +197,13 @@ public class GraphPanel extends JPanel {
             maxTemp = Math.max(maxTemp, temp);
         }
 
-        // Добавляем отступы
+        // Добавляем отступы вокруг данных
         minTime = Math.floor(minTime * 10) / 10 - 0.5;
         maxTime = Math.ceil(maxTime * 10) / 10 + 0.5;
         minTemp = Math.floor(minTemp * 10) / 10 - 1.0;
         maxTemp = Math.ceil(maxTemp * 10) / 10 + 1.0;
 
+        // Гарантируем минимальный диапазон для удобного отображения
         if (maxTime - minTime < 5) {
             double center = (minTime + maxTime) / 2;
             minTime = center - 2.5;
@@ -128,45 +216,58 @@ public class GraphPanel extends JPanel {
             maxTemp = center + 5;
         }
 
-        double xScale = width / (maxTime - minTime);
-        double yScale = height / (maxTemp - minTemp);
+        return new double[]{minTime, maxTime, minTemp, maxTemp};
+    }
 
-        drawAxisTicks(g2d, padding, width, height, minTime, maxTime, minTemp, maxTemp, xScale, yScale);
-
-        // Экспериментальные точки
+    /**
+     * Рисует экспериментальные точки на графике.
+     *
+     * @param g2d графический контекст
+     * @param padding отступ от края
+     * @param height высота области графика
+     * @param minTime минимальное время
+     * @param minTemp минимальная температура
+     * @param xScale масштаб по оси X
+     * @param yScale масштаб по оси Y
+     */
+    private void drawExperimentalPoints(Graphics2D g2d, int padding, int height,
+                                        double minTime, double minTemp,
+                                        double xScale, double yScale) {
         g2d.setColor(EXPERIMENTAL_COLOR);
         g2d.setStroke(new BasicStroke(2));
+
         for (DataPoint point : experimentalData) {
             int x = padding + (int) ((point.getTime() - minTime) * xScale);
             int y = padding + height - (int) ((point.getTemperature() - minTemp) * yScale);
             g2d.fillOval(x - 5, y - 5, 10, 10);
 
-            // Подпись в формате (время; температура)
-            g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 10));
-            String label = String.format("(%.1f; %.1f)", point.getTime(), point.getTemperature());
-            FontMetrics fm = g2d.getFontMetrics();
-            int labelWidth = fm.stringWidth(label);
-
-            int labelX = x - labelWidth/2;
-            int labelY = y - 15;
-
-            // Фон для читаемости
-            g2d.setColor(new Color(255, 255, 255, 220));
-            g2d.fillRect(labelX - 2, labelY - fm.getAscent() - 2,
-                    labelWidth + 4, fm.getHeight() + 2);
-
-            g2d.setColor(Color.BLACK);
-            g2d.drawString(label, labelX, labelY);
-            g2d.setColor(EXPERIMENTAL_COLOR);
+            drawPointLabel(g2d, x, y - 15,
+                    String.format("(%.1f; %.1f)", point.getTime(), point.getTemperature()));
         }
+    }
 
-        // Аппроксимирующая прямая
+    /**
+     * Рисует аппроксимирующую прямую на графике.
+     *
+     * @param g2d графический контекст
+     * @param padding отступ от края
+     * @param width ширина области графика
+     * @param height высота области графика
+     * @param minTime минимальное время
+     * @param minTemp минимальная температура
+     * @param xScale масштаб по оси X
+     * @param yScale масштаб по оси Y
+     */
+    private void drawRegressionLine(Graphics2D g2d, int padding, int width, int height,
+                                    double minTime, double minTemp,
+                                    double xScale, double yScale) {
         g2d.setColor(LINE_COLOR);
         g2d.setStroke(new BasicStroke(2));
+
+        // Вычисляем координаты точек на концах прямой
         double x1 = minTime;
         double y1 = a * x1 + b;
-        double x2 = maxTime;
+        double x2 = minTime + width / xScale;
         double y2 = a * x2 + b;
 
         int lineX1 = padding + (int) ((x1 - minTime) * xScale);
@@ -176,76 +277,107 @@ public class GraphPanel extends JPanel {
 
         g2d.drawLine(lineX1, lineY1, lineX2, lineY2);
 
-        // Уравнение прямой
+        // Подписываем уравнение прямой
         g2d.setFont(new Font("Arial", Font.BOLD, 12));
-        g2d.setColor(LINE_COLOR);
-        g2d.drawString(String.format("T = %.3f * t + %.3f", a, b), padding + width/2 - 50, padding + 25);
+        g2d.drawString(String.format("T = %.3f * t + %.3f", a, b),
+                padding + width/2 - 50, padding + 25);
+    }
 
-        // Интерполированные точки
+    /**
+     * Рисует интерполяционные точки на графике.
+     *
+     * @param g2d графический контекст
+     * @param padding отступ от края
+     * @param height высота области графика
+     * @param minTime минимальное время
+     * @param minTemp минимальная температура
+     * @param xScale масштаб по оси X
+     * @param yScale масштаб по оси Y
+     */
+    private void drawInterpolationPoints(Graphics2D g2d, int padding, int height,
+                                         double minTime, double minTemp,
+                                         double xScale, double yScale) {
         g2d.setColor(INTERPOLATION_COLOR);
         g2d.setStroke(new BasicStroke(2));
+
         for (Double time : interpolationTimes) {
             double temp = a * time + b;
             int x = padding + (int) ((time - minTime) * xScale);
             int y = padding + height - (int) ((temp - minTemp) * yScale);
             g2d.fillOval(x - 6, y - 6, 12, 12);
 
-            // Подпись в формате (время; температура)
-            g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 10));
-            String label = String.format("(%.2f; %.2f)", time, temp);
-            FontMetrics fm = g2d.getFontMetrics();
-            int labelWidth = fm.stringWidth(label);
-
-            int labelX = x - labelWidth/2;
-            int labelY = y - 20;
-
-            // Фон для читаемости
-            g2d.setColor(new Color(255, 255, 255, 220));
-            g2d.fillRect(labelX - 2, labelY - fm.getAscent() - 2,
-                    labelWidth + 4, fm.getHeight() + 2);
-
-            g2d.setColor(Color.BLACK);
-            g2d.drawString(label, labelX, labelY);
-            g2d.setColor(INTERPOLATION_COLOR);
+            drawPointLabel(g2d, x, y - 20,
+                    String.format("(%.2f; %.2f)", time, temp));
         }
+    }
 
-        // Пользовательские точки
+    /**
+     * Рисует пользовательские точки на графике.
+     *
+     * @param g2d графический контекст
+     * @param padding отступ от края
+     * @param height высота области графика
+     * @param minTime минимальное время
+     * @param minTemp минимальная температура
+     * @param xScale масштаб по оси X
+     * @param yScale масштаб по оси Y
+     */
+    private void drawUserPoints(Graphics2D g2d, int padding, int height,
+                                double minTime, double minTemp,
+                                double xScale, double yScale) {
         g2d.setColor(USER_POINT_COLOR);
         g2d.setStroke(new BasicStroke(2));
+
         for (DataPoint userPoint : userPoints) {
             int x = padding + (int) ((userPoint.getTime() - minTime) * xScale);
             int y = padding + height - (int) ((userPoint.getTemperature() - minTemp) * yScale);
             g2d.fillRect(x - 5, y - 5, 10, 10);
 
-            // Подпись в формате (время; температура)
-            g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 10));
-            String label = String.format("(%.1f; %.1f)", userPoint.getTime(), userPoint.getTemperature());
-            FontMetrics fm = g2d.getFontMetrics();
-            int labelWidth = fm.stringWidth(label);
-
-            int labelX = x - labelWidth/2;
-            int labelY = y + 20;
-
-            // Фон для читаемости
-            g2d.setColor(new Color(255, 255, 255, 220));
-            g2d.fillRect(labelX - 2, labelY - fm.getAscent() - 2,
-                    labelWidth + 4, fm.getHeight() + 2);
-
-            g2d.setColor(Color.BLACK);
-            g2d.drawString(label, labelX, labelY);
-            g2d.setColor(USER_POINT_COLOR);
+            drawPointLabel(g2d, x, y + 20,
+                    String.format("(%.1f; %.1f)", userPoint.getTime(), userPoint.getTemperature()));
         }
     }
 
+    /**
+     * Рисует подпись для точки на графике.
+     *
+     * @param g2d графический контекст
+     * @param x координата X центра точки
+     * @param y координата Y для подписи
+     * @param label текст подписи
+     */
+    private void drawPointLabel(Graphics2D g2d, int x, int y, String label) {
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("Arial", Font.PLAIN, 10));
+        FontMetrics fm = g2d.getFontMetrics();
+        int labelWidth = fm.stringWidth(label);
+
+        int labelX = x - labelWidth/2;
+
+        // Фон для читаемости подписи
+        g2d.setColor(new Color(255, 255, 255, 220));
+        g2d.fillRect(labelX - 2, y - fm.getAscent() - 2,
+                labelWidth + 4, fm.getHeight() + 2);
+
+        g2d.setColor(Color.BLACK);
+        g2d.drawString(label, labelX, y);
+    }
+
+    /**
+     * Рисует стрелки на концах осей координат.
+     *
+     * @param g2d графический контекст
+     * @param x1 начальная координата X
+     * @param y1 начальная координата Y
+     * @param x2 конечная координата X
+     * @param y2 конечная координата Y
+     */
     private void drawAxisArrows(Graphics2D g2d, int x1, int y1, int x2, int y2) {
-        // Рисуем основную линию
+        // Рисуем основную линию оси
         g2d.drawLine(x1, y1, x2, y2);
 
         // Рисуем стрелку
         int arrowSize = 8;
-        double angle = Math.atan2(y2 - y1, x2 - x1);
 
         // Для вертикальной оси (Y)
         if (x1 == x2) {
@@ -261,54 +393,95 @@ public class GraphPanel extends JPanel {
         }
     }
 
+    /**
+     * Рисует деления и сетку на осях координат.
+     *
+     * @param g2d графический контекст
+     * @param padding отступ от края
+     * @param width ширина области графика
+     * @param height высота области графика
+     * @param minTime минимальное время
+     * @param maxTime максимальное время
+     * @param minTemp минимальная температура
+     * @param maxTemp максимальная температура
+     * @param xScale масштаб по оси X
+     * @param yScale масштаб по оси Y
+     */
     private void drawAxisTicks(Graphics2D g2d, int padding, int width, int height,
                                double minTime, double maxTime, double minTemp, double maxTemp,
                                double xScale, double yScale) {
 
-        // Определяем шаг для делений - УМЕНЬШЕННЫЙ ШАГ
-        double timeRange = maxTime - minTime;
-        double tempRange = maxTemp - minTemp;
+        // Определяем оптимальный шаг для делений
+        double timeStep = getNiceStep(maxTime - minTime);
+        double tempStep = getNiceStep(maxTemp - minTemp);
 
-        double timeStep = getNiceStep(timeRange);
-        double tempStep = getNiceStep(tempRange);
-
-        // Дополнительные мелкие деления (в 2 или 5 раз чаще)
+        // Мелкие деления (в 2 раза чаще основных)
         double minorTimeStep = timeStep / 2;
         double minorTempStep = tempStep / 2;
 
         g2d.setColor(Color.GRAY);
         g2d.setFont(new Font("Arial", Font.PLAIN, 10));
 
-        // Мелкие деления на оси X (время) - БЕЗ ПОДПИСЕЙ
+        // Рисуем мелкие деления без подписей
+        drawMinorTicks(g2d, padding, height, minTime, minTemp,
+                minorTimeStep, minorTempStep, xScale, yScale);
+
+        // Рисуем основные деления с подписями
+        drawMajorTicks(g2d, padding, height, minTime, minTemp,
+                timeStep, tempStep, xScale, yScale);
+
+        // Рисуем сетку (пунктирные линии)
+        drawGrid(g2d, padding, width, height, minTime, minTemp,
+                timeStep, tempStep, xScale, yScale);
+    }
+
+    /**
+     * Рисует мелкие деления на осях без подписей.
+     */
+    private void drawMinorTicks(Graphics2D g2d, int padding, int height,
+                                double minTime, double minTemp,
+                                double timeStep, double tempStep,
+                                double xScale, double yScale) {
         g2d.setStroke(new BasicStroke(0.5f));
-        for (double time = minTime; time <= maxTime; time += minorTimeStep) {
+
+        // Мелкие деления на оси X (время)
+        for (double time = minTime; time <= minTime + (getWidth() - 2*padding) / xScale;
+             time += timeStep) {
             int x = padding + (int) ((time - minTime) * xScale);
             int y = padding + height;
-
-            // Рисуем маленькую засечку
             g2d.drawLine(x, y - 3, x, y + 3);
         }
 
-        // Мелкие деления на оси Y (температура) - БЕЗ ПОДПИСЕЙ
-        for (double temp = minTemp; temp <= maxTemp; temp += minorTempStep) {
+        // Мелкие деления на оси Y (температура)
+        for (double temp = minTemp; temp <= minTemp + (getHeight() - 2*padding) / yScale;
+             temp += tempStep) {
             int x = padding;
             int y = padding + height - (int) ((temp - minTemp) * yScale);
-
-            // Рисуем маленькую засечку
             g2d.drawLine(x - 3, y, x + 3, y);
         }
+    }
 
-        // Основные деления на оси X (время) - С ПОДПИСЯМИ
+    /**
+     * Рисует основные деления на осях с подписями.
+     */
+    private void drawMajorTicks(Graphics2D g2d, int padding, int height,
+                                double minTime, double minTemp,
+                                double timeStep, double tempStep,
+                                double xScale, double yScale) {
         g2d.setStroke(new BasicStroke(1));
-        for (double time = minTime; time <= maxTime; time += timeStep) {
+
+        // Основные деления на оси X (время)
+        for (double time = minTime; time <= minTime + (getWidth() - 2*padding) / xScale;
+             time += timeStep) {
             int x = padding + (int) ((time - minTime) * xScale);
             int y = padding + height;
 
             // Рисуем большую засечку
             g2d.drawLine(x, y - 6, x, y + 6);
 
-            // Подписываем значение (только целые или .5)
-            if (Math.abs(time - Math.round(time)) < 0.01 || Math.abs(time*2 - Math.round(time*2)) < 0.01) {
+            // Подписываем только "красивые" значения
+            if (Math.abs(time - Math.round(time)) < 0.01 ||
+                    Math.abs(time*2 - Math.round(time*2)) < 0.01) {
                 String label = String.format("%.1f", time);
                 FontMetrics fm = g2d.getFontMetrics();
                 int labelWidth = fm.stringWidth(label);
@@ -316,36 +489,46 @@ public class GraphPanel extends JPanel {
             }
         }
 
-        // Основные деления на оси Y (температура) - С ПОДПИСЯМИ
-        for (double temp = minTemp; temp <= maxTemp; temp += tempStep) {
+        // Основные деления на оси Y (температура)
+        for (double temp = minTemp; temp <= minTemp + (getHeight() - 2*padding) / yScale;
+             temp += tempStep) {
             int x = padding;
             int y = padding + height - (int) ((temp - minTemp) * yScale);
 
             // Рисуем большую засечку
             g2d.drawLine(x - 6, y, x + 6, y);
 
-            // Подписываем значение (только целые или .5)
-            if (Math.abs(temp - Math.round(temp)) < 0.01 || Math.abs(temp*2 - Math.round(temp*2)) < 0.01) {
+            // Подписываем только "красивые" значения
+            if (Math.abs(temp - Math.round(temp)) < 0.01 ||
+                    Math.abs(temp*2 - Math.round(temp*2)) < 0.01) {
                 String label = String.format("%.1f", temp);
                 FontMetrics fm = g2d.getFontMetrics();
                 int labelWidth = fm.stringWidth(label);
                 g2d.drawString(label, x - labelWidth - 8, y + 4);
             }
         }
+    }
 
-        // Сетка (пунктирные линии) - только по основным делениям
+    /**
+     * Рисует сетку на графике.
+     */
+    private void drawGrid(Graphics2D g2d, int padding, int width, int height,
+                          double minTime, double minTemp,
+                          double timeStep, double tempStep,
+                          double xScale, double yScale) {
+        // Пунктирная линия для сетки
         g2d.setStroke(new BasicStroke(0.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
                 0, new float[]{2, 2}, 0));
         g2d.setColor(new Color(220, 220, 220));
 
         // Вертикальные линии сетки
-        for (double time = minTime; time <= maxTime; time += timeStep) {
+        for (double time = minTime; time <= minTime + width / xScale; time += timeStep) {
             int x = padding + (int) ((time - minTime) * xScale);
             g2d.drawLine(x, padding, x, padding + height);
         }
 
         // Горизонтальные линии сетки
-        for (double temp = minTemp; temp <= maxTemp; temp += tempStep) {
+        for (double temp = minTemp; temp <= minTemp + height / yScale; temp += tempStep) {
             int y = padding + height - (int) ((temp - minTemp) * yScale);
             g2d.drawLine(padding, y, padding + width, y);
         }
@@ -354,18 +537,25 @@ public class GraphPanel extends JPanel {
         g2d.setStroke(new BasicStroke(1));
     }
 
+    /**
+     * Вычисляет оптимальный шаг для делений на осях.
+     * Возвращает "красивый" шаг для удобного отображения.
+     *
+     * @param range диапазон значений на оси
+     * @return оптимальный шаг для делений
+     */
     private double getNiceStep(double range) {
-        // Уменьшаем шаг для более частых делений
+        // Определяем порядок величины диапазона
         double step = Math.pow(10, Math.floor(Math.log10(range)));
 
-        // Уменьшаем шаг в 2-5 раз для более мелкой сетки
+        // Корректируем шаг в зависимости от величины диапазона
         if (range / step > 15) step *= 2;
         else if (range / step > 8) step *= 1;
         else if (range / step > 4) step /= 2;
         else if (range / step > 2) step /= 2.5;
         else step /= 5;
 
-        // Обеспечиваем минимальный шаг 0.5 для времени и 1 для температуры
+        // Гарантируем минимальный шаг для удобства чтения
         if (range < 10) {
             step = Math.max(step, 0.5);
         }

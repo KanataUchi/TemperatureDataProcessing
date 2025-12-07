@@ -11,25 +11,63 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Класс для импорта данных из Excel файлов.
+ * Поддерживает форматы .xlsx и .xls. Ищет данные в формате,
+ * соответствующем экспорту из FileExporter.
+ *
+ * @author Петрущенко Александр Андреевич
+ * @version 1.0
+ */
 public class FileImporter {
 
+    /**
+     * Результат импорта данных из Excel файла.
+     * Содержит отдельные списки для экспериментальных и интерполяционных данных.
+     */
     public static class ImportResult {
+        /**
+         * Список экспериментальных точек данных.
+         */
         public List<DataPoint> experimentalData;
+
+        /**
+         * Список интерполяционных точек данных.
+         */
         public List<DataPoint> interpolationData;
+
+        /**
+         * Сообщение об ошибке, если импорт не удался.
+         */
         public String errorMessage;
 
+        /**
+         * Создает новый пустой результат импорта.
+         */
         public ImportResult() {
             experimentalData = new ArrayList<>();
             interpolationData = new ArrayList<>();
         }
 
+        /**
+         * Проверяет, содержит ли результат какие-либо данные.
+         *
+         * @return true если есть хотя бы один тип данных, false если оба списка пусты
+         */
         public boolean hasData() {
             return !experimentalData.isEmpty() || !interpolationData.isEmpty();
         }
     }
 
+    /**
+     * Импортирует данные из Excel файла через диалоговое окно выбора файла.
+     * Поддерживает форматы .xlsx и .xls.
+     *
+     * @param parentFrame родительское окно для диалогов
+     * @return результат импорта или null если пользователь отменил операцию
+     */
     public static ImportResult importFromExcel(JFrame parentFrame) {
-        // Создаем диалог выбора файла
+        // Создаем диалоговое окно выбора файла
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Загрузить данные из Excel файла");
 
@@ -57,9 +95,11 @@ public class FileImporter {
                 System.out.println("=== ИМПОРТ ДАННЫХ ===");
                 System.out.println("Файл: " + fileToLoad.getName());
 
+                // Загружаем данные из файла
                 ImportResult result = loadSimpleTable(fileToLoad);
 
                 if (!result.hasData()) {
+                    // Показываем предупреждение если данных не найдено
                     JOptionPane.showMessageDialog(parentFrame,
                             "В файле не найдены данные в нужном формате.\n" +
                                     "Файл должен содержать лист 'Все точки' с таблицей:\n" +
@@ -73,12 +113,14 @@ public class FileImporter {
                 return result;
 
             } catch (IOException e) {
+                // Обрабатываем ошибки чтения файла
                 JOptionPane.showMessageDialog(parentFrame,
                         "Ошибка при чтении Excel файла:\n" + e.getMessage(),
                         "Ошибка загрузки",
                         JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
             } catch (Exception e) {
+                // Обрабатываем другие ошибки
                 JOptionPane.showMessageDialog(parentFrame,
                         "Ошибка обработки данных:\n" + e.getMessage(),
                         "Ошибка загрузки",
@@ -87,16 +129,24 @@ public class FileImporter {
             }
         }
 
-        return null;
+        return null; // Пользователь отменил операцию
     }
 
+    /**
+     * Загружает данные из Excel файла в простом табличном формате.
+     * Ищет лист "Все точки" с определенной структурой.
+     *
+     * @param file файл Excel для загрузки
+     * @return результат импорта с данными
+     * @throws IOException если возникает ошибка чтения файла
+     */
     private static ImportResult loadSimpleTable(File file) throws IOException {
         ImportResult result = new ImportResult();
 
         try (FileInputStream fis = new FileInputStream(file);
              Workbook workbook = createWorkbook(file, fis)) {
 
-            // ИЩЕМ ЛИСТ "ВСЕ ТОЧКИ"
+            // Ищем лист с названием "Все точки"
             Sheet allPointsSheet = workbook.getSheet("Все точки");
             if (allPointsSheet == null) {
                 result.errorMessage = "В файле отсутствует лист 'Все точки'";
@@ -106,8 +156,7 @@ public class FileImporter {
             System.out.println("Найден лист 'Все точки'");
             System.out.println("Всего строк: " + (allPointsSheet.getLastRowNum() + 1));
 
-            // ИЩЕМ СТРОКУ С ЗАГОЛОВКАМИ ТАБЛИЦЫ
-            // В новом формате первая строка может быть с уравнением
+            // Находим строку с заголовками таблицы
             int headerRowIndex = findHeaderRow(allPointsSheet);
             if (headerRowIndex == -1) {
                 result.errorMessage = "Не найдена строка с заголовками таблицы";
@@ -116,44 +165,28 @@ public class FileImporter {
 
             System.out.println("Заголовки найдены в строке: " + headerRowIndex);
 
-            // ОПРЕДЕЛЯЕМ КОЛОНКИ
-            int typeCol = -1, timeCol = -1, tempCol = -1;
+            // Определяем индексы колонок
             Row headerRow = allPointsSheet.getRow(headerRowIndex);
+            int typeCol = findColumnIndex(headerRow, "тип");
+            int timeCol = findColumnIndex(headerRow, "время", "час");
+            int tempCol = findColumnIndex(headerRow, "температура", "°c");
 
-            for (int col = 0; col < headerRow.getLastCellNum(); col++) {
-                Cell cell = headerRow.getCell(col);
-                if (cell != null) {
-                    String value = getCellValueAsString(cell).toLowerCase().trim();
-
-                    if (value.contains("тип")) {
-                        typeCol = col;
-                        System.out.println("Колонка 'Тип': " + col);
-                    } else if (value.contains("время") || value.contains("час")) {
-                        timeCol = col;
-                        System.out.println("Колонка 'Время': " + col);
-                    } else if (value.contains("температура") || value.contains("°c")) {
-                        tempCol = col;
-                        System.out.println("Колонка 'Температура': " + col);
-                    }
-                }
-            }
-
-            // ПРОВЕРЯЕМ ЧТО НАШЛИ ВСЕ КОЛОНКИ
+            // Проверяем что нашли все необходимые колонки
             if (typeCol == -1 || timeCol == -1 || tempCol == -1) {
-                System.out.println("Не все колонки найдены: тип=" + typeCol +
-                        ", время=" + timeCol + ", темп=" + tempCol);
                 result.errorMessage = "В таблице не найдены все необходимые колонки";
                 return result;
             }
 
-            // ЧИТАЕМ ДАННЫЕ НАЧИНАЯ СО СЛЕДУЮЩЕЙ СТРОКИ ПОСЛЕ ЗАГОЛОВКОВ
+            System.out.println("Колонки: тип=" + typeCol + ", время=" + timeCol + ", темп=" + tempCol);
+
+            // Читаем данные начиная со следующей строки после заголовков
             int dataStartRow = headerRowIndex + 1;
             System.out.println("Чтение данных начиная со строки: " + dataStartRow);
 
             for (int row = dataStartRow; row <= allPointsSheet.getLastRowNum(); row++) {
                 Row dataRow = allPointsSheet.getRow(row);
                 if (dataRow == null || isRowEmpty(dataRow)) {
-                    continue;
+                    continue; // Пропускаем пустые строки
                 }
 
                 Cell typeCell = dataRow.getCell(typeCol);
@@ -161,7 +194,7 @@ public class FileImporter {
                 Cell tempCell = dataRow.getCell(tempCol);
 
                 if (typeCell == null || timeCell == null || tempCell == null) {
-                    continue;
+                    continue; // Пропускаем строки с отсутствующими данными
                 }
 
                 try {
@@ -169,19 +202,18 @@ public class FileImporter {
                     double time = getNumericValue(timeCell);
                     double temperature = getNumericValue(tempCell);
 
-                    // Пропускаем некорректные значения
+                    // Проверяем корректность значений
                     if (time < 0 || time > 24 || temperature < -100 || temperature > 100) {
                         System.out.println("Пропускаем строку " + row + ": некорректные данные");
                         continue;
                     }
 
-                    // ДОБАВЛЯЕМ ВСЕ ТОЧКИ С ТЕМПЕРАТУРОЙ
+                    // Распределяем точки по типам
                     if (type.contains("эксперимент") || type.contains("исход")) {
                         result.experimentalData.add(new DataPoint(time, temperature));
                         System.out.println("Экспериментальная: " + time + " час, " + temperature + "°C");
                     }
                     else if (type.contains("интерполяция") || type.contains("расчет")) {
-                        // СОХРАНЯЕМ ТЕМПЕРАТУРУ ИЗ ФАЙЛА, а не пересчитываем
                         result.interpolationData.add(new DataPoint(time, temperature));
                         System.out.println("Интерполяция (импорт): " + time + " час, " + temperature + "°C");
                     }
@@ -203,7 +235,35 @@ public class FileImporter {
         return result;
     }
 
-    // НАХОДИМ СТРОКУ С ЗАГОЛОВКАМИ (игнорируем строку с уравнением)
+    /**
+     * Находит индекс колонки по ключевым словам в заголовке.
+     *
+     * @param headerRow строка с заголовками
+     * @param keywords ключевые слова для поиска
+     * @return индекс колонки или -1 если не найдено
+     */
+    private static int findColumnIndex(Row headerRow, String... keywords) {
+        for (int col = 0; col < headerRow.getLastCellNum(); col++) {
+            Cell cell = headerRow.getCell(col);
+            if (cell != null) {
+                String value = getCellValueAsString(cell).toLowerCase().trim();
+                for (String keyword : keywords) {
+                    if (value.contains(keyword)) {
+                        return col;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Находит строку с заголовками таблицы.
+     * Игнорирует возможную строку с уравнением в начале.
+     *
+     * @param sheet лист Excel
+     * @return индекс строки с заголовками или -1 если не найдено
+     */
     private static int findHeaderRow(Sheet sheet) {
         // Ищем строку, которая содержит все три заголовка
         for (int row = 0; row <= Math.min(10, sheet.getLastRowNum()); row++) {
@@ -232,7 +292,12 @@ public class FileImporter {
         return -1; // Не нашли
     }
 
-    // ПРОВЕРКА ПУСТОТЫ СТРОКИ
+    /**
+     * Проверяет, является ли строка пустой.
+     *
+     * @param row строка Excel
+     * @return true если строка пустая, false если содержит данные
+     */
     private static boolean isRowEmpty(Row row) {
         if (row == null) return true;
 
@@ -241,15 +306,22 @@ public class FileImporter {
             if (cell != null) {
                 String value = getCellValueAsString(cell).trim();
                 if (!value.isEmpty()) {
-                    return false;
+                    return false; // Нашли непустую ячейку
                 }
             }
         }
 
-        return true;
+        return true; // Все ячейки пустые
     }
 
-    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    /**
+     * Получает числовое значение из ячейки Excel.
+     * Поддерживает различные типы ячеек: числовые, строковые, формулы.
+     *
+     * @param cell ячейка Excel
+     * @return числовое значение
+     * @throws IllegalArgumentException если ячейка null или содержит нечисловые данные
+     */
     private static double getNumericValue(Cell cell) {
         if (cell == null) throw new IllegalArgumentException("Ячейка null");
 
@@ -261,9 +333,8 @@ public class FileImporter {
                 if (str.isEmpty()) {
                     throw new IllegalArgumentException("Пустая строка");
                 }
-                str = str.replace(',', '.');
-                // Удаляем все кроме цифр, точки и минуса
-                str = str.replaceAll("[^0-9.-]", "");
+                str = str.replace(',', '.'); // Заменяем запятую на точку
+                str = str.replaceAll("[^0-9.-]", ""); // Удаляем нечисловые символы
                 if (str.isEmpty()) {
                     throw new IllegalArgumentException("Нечисловое значение: " + cell.getStringCellValue());
                 }
@@ -278,6 +349,13 @@ public class FileImporter {
         }
     }
 
+    /**
+     * Получает строковое значение из ячейки Excel.
+     * Конвертирует различные типы ячеек в строку.
+     *
+     * @param cell ячейка Excel
+     * @return строковое представление значения ячейки
+     */
     private static String getCellValueAsString(Cell cell) {
         if (cell == null) return "";
 
@@ -286,11 +364,11 @@ public class FileImporter {
                 return cell.getStringCellValue();
             } else if (cell.getCellType() == CellType.NUMERIC) {
                 double num = cell.getNumericCellValue();
-                // Убираем лишние нули
+                // Форматируем число, убирая лишние нули
                 if (num == Math.floor(num)) {
-                    return String.format("%.0f", num);
+                    return String.format("%.0f", num); // Целое число
                 } else {
-                    return String.format("%.2f", num);
+                    return String.format("%.2f", num); // Дробное число с двумя знаками
                 }
             } else if (cell.getCellType() == CellType.BOOLEAN) {
                 return cell.getBooleanCellValue() ? "true" : "false";
@@ -298,17 +376,25 @@ public class FileImporter {
                 return cell.toString();
             }
         } catch (Exception e) {
-            return "";
+            return ""; // Возвращаем пустую строку при ошибке
         }
     }
 
+    /**
+     * Создает объект Workbook в зависимости от формата файла.
+     *
+     * @param file файл Excel
+     * @param fis поток ввода файла
+     * @return объект Workbook для работы с Excel
+     * @throws IOException если формат файла не поддерживается
+     */
     private static Workbook createWorkbook(File file, FileInputStream fis) throws IOException {
         String fileName = file.getName().toLowerCase();
 
         if (fileName.endsWith(".xlsx")) {
-            return new XSSFWorkbook(fis);
+            return new XSSFWorkbook(fis); // Excel 2007+
         } else if (fileName.endsWith(".xls")) {
-            return new HSSFWorkbook(fis);
+            return new HSSFWorkbook(fis); // Excel 97-2003
         } else {
             throw new IOException("Неподдерживаемый формат: " + fileName);
         }
