@@ -31,16 +31,11 @@ public class GraphPanel extends JPanel {
      */
     private List<Double> interpolationTimes;
 
-    /**
-     * Пользовательские точки, добавленные вручную.
-     */
-    private List<DataPoint> userPoints;
 
     // Цвета для различных элементов графика
     private final Color EXPERIMENTAL_COLOR = Color.BLUE;
     private final Color LINE_COLOR = Color.RED;
     private final Color INTERPOLATION_COLOR = Color.GREEN;
-    private final Color USER_POINT_COLOR = Color.MAGENTA;
 
     /**
      * Создает новую панель графика с заданными данными.
@@ -56,31 +51,10 @@ public class GraphPanel extends JPanel {
         this.a = a;
         this.b = b;
         this.interpolationTimes = interpolationTimes;
-        this.userPoints = new ArrayList<>();
 
         setPreferredSize(new Dimension(800, 600));
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createLineBorder(Color.GRAY));
-    }
-
-    /**
-     * Добавляет пользовательскую точку на график.
-     *
-     * @param время точки
-     * @param температура точки
-     */
-    public void addUserPoint(double time, double temperature) {
-        DataPoint newPoint = new DataPoint(time, temperature);
-        userPoints.add(newPoint);
-        repaint(); // Перерисовываем график
-    }
-
-    /**
-     * Очищает все пользовательские точки с графика.
-     */
-    public void clearUserPoints() {
-        userPoints.clear();
-        repaint();
     }
 
     /**
@@ -157,8 +131,6 @@ public class GraphPanel extends JPanel {
         // Рисуем интерполяционные точки
         drawInterpolationPoints(g2d, padding, height, minTime, minTemp, xScale, yScale);
 
-        // Рисуем пользовательские точки
-        drawUserPoints(g2d, padding, height, minTime, minTemp, xScale, yScale);
     }
 
     /**
@@ -178,14 +150,6 @@ public class GraphPanel extends JPanel {
             maxTime = Math.max(maxTime, point.getTime());
             minTemp = Math.min(minTemp, point.getTemperature());
             maxTemp = Math.max(maxTemp, point.getTemperature());
-        }
-
-        // Добавляем пользовательские точки
-        for (DataPoint userPoint : userPoints) {
-            minTime = Math.min(minTime, userPoint.getTime());
-            maxTime = Math.max(maxTime, userPoint.getTime());
-            minTemp = Math.min(minTemp, userPoint.getTemperature());
-            maxTemp = Math.max(maxTemp, userPoint.getTemperature());
         }
 
         // Добавляем интерполяционные точки
@@ -233,10 +197,10 @@ public class GraphPanel extends JPanel {
     private void drawExperimentalPoints(Graphics2D g2d, int padding, int height,
                                         double minTime, double minTemp,
                                         double xScale, double yScale) {
-        g2d.setColor(EXPERIMENTAL_COLOR);
-        g2d.setStroke(new BasicStroke(2));
 
         for (DataPoint point : experimentalData) {
+            g2d.setColor(EXPERIMENTAL_COLOR);
+            g2d.setStroke(new BasicStroke(2));
             int x = padding + (int) ((point.getTime() - minTime) * xScale);
             int y = padding + height - (int) ((point.getTemperature() - minTemp) * yScale);
             g2d.fillOval(x - 5, y - 5, 10, 10);
@@ -297,10 +261,10 @@ public class GraphPanel extends JPanel {
     private void drawInterpolationPoints(Graphics2D g2d, int padding, int height,
                                          double minTime, double minTemp,
                                          double xScale, double yScale) {
-        g2d.setColor(INTERPOLATION_COLOR);
-        g2d.setStroke(new BasicStroke(2));
 
         for (Double time : interpolationTimes) {
+            g2d.setColor(INTERPOLATION_COLOR);
+            g2d.setStroke(new BasicStroke(2));
             double temp = a * time + b;
             int x = padding + (int) ((time - minTime) * xScale);
             int y = padding + height - (int) ((temp - minTemp) * yScale);
@@ -308,33 +272,6 @@ public class GraphPanel extends JPanel {
 
             drawPointLabel(g2d, x, y - 20,
                     String.format("(%.2f; %.2f)", time, temp));
-        }
-    }
-
-    /**
-     * Рисует пользовательские точки на графике.
-     *
-     * @param g2d графический контекст
-     * @param padding отступ от края
-     * @param height высота области графика
-     * @param minTime минимальное время
-     * @param minTemp минимальная температура
-     * @param xScale масштаб по оси X
-     * @param yScale масштаб по оси Y
-     */
-    private void drawUserPoints(Graphics2D g2d, int padding, int height,
-                                double minTime, double minTemp,
-                                double xScale, double yScale) {
-        g2d.setColor(USER_POINT_COLOR);
-        g2d.setStroke(new BasicStroke(2));
-
-        for (DataPoint userPoint : userPoints) {
-            int x = padding + (int) ((userPoint.getTime() - minTime) * xScale);
-            int y = padding + height - (int) ((userPoint.getTemperature() - minTemp) * yScale);
-            g2d.fillRect(x - 5, y - 5, 10, 10);
-
-            drawPointLabel(g2d, x, y + 20,
-                    String.format("(%.1f; %.1f)", userPoint.getTime(), userPoint.getTemperature()));
         }
     }
 

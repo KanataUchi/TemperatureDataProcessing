@@ -26,11 +26,10 @@ public class GraphFrame extends JFrame {
      * @param a коэффициент наклона прямой
      * @param b коэффициент смещения прямой
      * @param interpolationTimes список времен для интерполяции
-     * @param userPoints список пользовательских точек
      * @param mainFrame ссылка на главное окно приложения
      */
     public GraphFrame(List<DataPoint> experimentalData, double a, double b,
-                      List<Double> interpolationTimes, List<DataPoint> userPoints,
+                      List<Double> interpolationTimes,
                       MainFrame mainFrame) {
 
         setTitle("График экспериментальных данных");
@@ -38,7 +37,7 @@ public class GraphFrame extends JFrame {
         setLayout(new BorderLayout());
 
         setupMenuBar();
-        setupUI(experimentalData, a, b, interpolationTimes, userPoints);
+        setupUI(experimentalData, a, b, interpolationTimes);
 
         setSize(800, 600);
         setLocationRelativeTo(null); // Центрируем окно на экране
@@ -72,19 +71,11 @@ public class GraphFrame extends JFrame {
      * @param a коэффициент наклона прямой
      * @param b коэффициент смещения прямой
      * @param interpolationTimes список времен для интерполяции
-     * @param userPoints список пользовательских точек
      */
     private void setupUI(List<DataPoint> experimentalData, double a, double b,
-                         List<Double> interpolationTimes, List<DataPoint> userPoints) {
+                         List<Double> interpolationTimes) {
         // Создаем панель графика с основными данными
         graphPanel = new GraphPanel(experimentalData, a, b, interpolationTimes);
-
-        // Добавляем пользовательские точки если они есть
-        if (userPoints != null && !userPoints.isEmpty()) {
-            for (DataPoint point : userPoints) {
-                graphPanel.addUserPoint(point.getTime(), point.getTemperature());
-            }
-        }
 
         add(graphPanel, BorderLayout.CENTER);
     }
@@ -97,15 +88,14 @@ public class GraphFrame extends JFrame {
      * @param a новый коэффициент наклона прямой
      * @param b новый коэффициент смещения прямой
      * @param interpolationTimes обновленный список времен для интерполяции
-     * @param userPoints обновленный список пользовательских точек
      */
     public void updateGraph(List<DataPoint> experimentalData, double a, double b,
-                            List<Double> interpolationTimes, List<DataPoint> userPoints) {
+                            List<Double> interpolationTimes) {
         // Удаляем все компоненты с текущей панели
         getContentPane().removeAll();
 
         // Пересоздаем интерфейс с новыми данными
-        setupUI(experimentalData, a, b, interpolationTimes, userPoints);
+        setupUI(experimentalData, a, b, interpolationTimes);
 
         // Обновляем отображение окна
         revalidate();

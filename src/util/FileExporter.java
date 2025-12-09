@@ -27,14 +27,12 @@ public class FileExporter {
      *
      * @param experimentalData список экспериментальных точек
      * @param interpolatedData список интерполяционных точек (уже с рассчитанной температурой)
-     * @param userData список пользовательских точек
      * @param a коэффициент наклона прямой
      * @param b коэффициент смещения прямой
      * @param parentFrame родительское окно для диалогов
      */
     public static void exportToExcel(List<DataPoint> experimentalData,
                                      List<DataPoint> interpolatedData,
-                                     List<DataPoint> userData,
                                      double a, double b,
                                      JFrame parentFrame) {
 
@@ -83,7 +81,7 @@ public class FileExporter {
                 // Создаем лист "Все точки" и заполняем его данными
                 Sheet allPointsSheet = workbook.createSheet("Все точки");
                 createSimpleTable(allPointsSheet, experimentalData,
-                        interpolatedData, userData, a, b,
+                        interpolatedData, a, b,
                         headerStyle, dataStyle, infoStyle);
 
                 // Сохраняем файл на диск
@@ -114,7 +112,6 @@ public class FileExporter {
      * @param sheet лист Excel для заполнения
      * @param experimentalData список экспериментальных точек
      * @param interpolatedData список интерполяционных точек
-     * @param userData список пользовательских точек
      * @param a коэффициент наклона прямой
      * @param b коэффициент смещения прямой
      * @param headerStyle стиль для заголовков таблицы
@@ -124,7 +121,6 @@ public class FileExporter {
     private static void createSimpleTable(Sheet sheet,
                                           List<DataPoint> experimentalData,
                                           List<DataPoint> interpolatedData,
-                                          List<DataPoint> userData,
                                           double a, double b,
                                           CellStyle headerStyle,
                                           CellStyle dataStyle,
@@ -166,18 +162,6 @@ public class FileExporter {
         for (DataPoint point : interpolatedData) {
             Row dataRow = sheet.createRow(rowIndex++);
             dataRow.createCell(0).setCellValue("Интерполяция");
-            dataRow.createCell(1).setCellValue(point.getTime());
-            dataRow.createCell(2).setCellValue(point.getTemperature());
-
-            for (int i = 0; i < 3; i++) {
-                dataRow.getCell(i).setCellStyle(dataStyle);
-            }
-        }
-
-        // Пользовательские точки
-        for (DataPoint point : userData) {
-            Row dataRow = sheet.createRow(rowIndex++);
-            dataRow.createCell(0).setCellValue("Пользовательская");
             dataRow.createCell(1).setCellValue(point.getTime());
             dataRow.createCell(2).setCellValue(point.getTemperature());
 

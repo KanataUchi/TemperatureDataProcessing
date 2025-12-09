@@ -41,9 +41,6 @@ public class MainFrame extends JFrame {
     // Времена для интерполяции
     private List<Double> interpolationTimes;
 
-    // Пользовательские точки (добавленные вручную)
-    private List<DataPoint> userPoints = new ArrayList<>();
-
     // Коэффициенты линейного уравнения T = a*t + b
     private double a, b;
 
@@ -618,7 +615,7 @@ public class MainFrame extends JFrame {
                 updateStatus("Время интерполяции удалено. Всего: " + interpolationTimes.size());
 
                 if (graphFrame != null && graphFrame.isVisible()) {
-                    graphFrame.updateGraph(experimentalData, a, b, interpolationTimes, userPoints);
+                    graphFrame.updateGraph(experimentalData, a, b, interpolationTimes);
                 }
             } else {
                 showErrorDialog("Ошибка", "Выберите строку для удаления");
@@ -724,7 +721,7 @@ public class MainFrame extends JFrame {
 
         // Обновляем график если он открыт
         if (graphFrame != null && graphFrame.isVisible()) {
-            graphFrame.updateGraph(experimentalData, a, b, interpolationTimes, userPoints);
+            graphFrame.updateGraph(experimentalData, a, b, interpolationTimes);
         }
     }
 
@@ -777,7 +774,7 @@ public class MainFrame extends JFrame {
                 updateStatus("Добавлено время интерполяции: " + time + " час");
 
                 if (graphFrame != null && graphFrame.isVisible()) {
-                    graphFrame.updateGraph(experimentalData, a, b, interpolationTimes, userPoints);
+                    graphFrame.updateGraph(experimentalData, a, b, interpolationTimes);
                 }
             } catch (NumberFormatException e) {
                 showErrorDialog("Ошибка ввода", "Неверный формат времени");
@@ -814,11 +811,11 @@ public class MainFrame extends JFrame {
         saveExperimentalData();
 
         if (graphFrame == null || !graphFrame.isVisible()) {
-            graphFrame = new GraphFrame(experimentalData, a, b, interpolationTimes, userPoints, this);
+            graphFrame = new GraphFrame(experimentalData, a, b, interpolationTimes, this);
             graphFrame.setVisible(true);
         } else {
             graphFrame.toFront();
-            graphFrame.updateGraph(experimentalData, a, b, interpolationTimes, userPoints);
+            graphFrame.updateGraph(experimentalData, a, b, interpolationTimes);
         }
     }
 
@@ -878,7 +875,6 @@ public class MainFrame extends JFrame {
                 // Очищаем текущие данные
                 experimentalData.clear();
                 interpolationTimes.clear();
-                userPoints.clear();
 
                 experimentalModel.setRowCount(0);
                 interpolationModel.setRowCount(0);
@@ -919,7 +915,7 @@ public class MainFrame extends JFrame {
 
                     // Обновляем график если он открыт
                     if (graphFrame != null && graphFrame.isVisible()) {
-                        graphFrame.updateGraph(experimentalData, a, b, interpolationTimes, userPoints);
+                        graphFrame.updateGraph(experimentalData, a, b, interpolationTimes);
                     }
 
                     JOptionPane.showMessageDialog(this,
@@ -964,7 +960,6 @@ public class MainFrame extends JFrame {
     private void clearAllData() {
         experimentalData.clear();
         interpolationTimes.clear();
-        userPoints.clear();
 
         experimentalModel.setRowCount(0);
         interpolationModel.setRowCount(0);
@@ -978,7 +973,7 @@ public class MainFrame extends JFrame {
 
         // Обновляем график если он открыт
         if (graphFrame != null && graphFrame.isVisible()) {
-            graphFrame.updateGraph(experimentalData, a, b, interpolationTimes, userPoints);
+            graphFrame.updateGraph(experimentalData, a, b, interpolationTimes);
         }
     }
 
@@ -1073,7 +1068,7 @@ public class MainFrame extends JFrame {
         }
 
         // Вызываем экспорт в Excel
-        FileExporter.exportToExcel(experimentalData, interpolatedData, userPoints, a, b, this);
+        FileExporter.exportToExcel(experimentalData, interpolatedData, a, b, this);
     }
 
     /**
