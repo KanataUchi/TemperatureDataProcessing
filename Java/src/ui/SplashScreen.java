@@ -205,7 +205,7 @@ public class SplashScreen extends JWindow {
      * Таймер обновляет прогресс каждые 50 миллисекунд.
      */
     private void startTimer() {
-        timer = new Timer(50, e -> {
+        timer = new Timer(600, e -> {
             // Проверяем, не была ли нажата кнопка "Пропустить"
             if (isSkipped) {
                 timer.stop();
@@ -268,7 +268,7 @@ public class SplashScreen extends JWindow {
     private ImageIcon loadImageFromResources() {
         try {
             // Пытаемся загрузить логотип из папки resources
-            return new ImageIcon("src/resources/logo.png");
+            return new ImageIcon("Java/src/resources/logo.png");
         } catch (Exception e) {
             return null;
         }

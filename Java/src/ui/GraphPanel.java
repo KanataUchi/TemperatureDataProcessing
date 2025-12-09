@@ -4,7 +4,6 @@ import model.DataPoint;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.ArrayList;
 import java.util.List;
 
 /**

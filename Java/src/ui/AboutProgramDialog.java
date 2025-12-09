@@ -171,7 +171,7 @@ public class AboutProgramDialog extends JDialog {
     private ImageIcon loadImageFromResources() {
         try {
             // Путь к файлу изображения в папке resources
-            return new ImageIcon("src/resources/img.jpg");
+            return new ImageIcon("Java/src/resources/img.jpg");
         } catch (Exception e) {
             return null;
         }

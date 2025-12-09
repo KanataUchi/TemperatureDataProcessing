@@ -180,7 +180,7 @@ public class AboutAuthorDialog extends JDialog {
     private ImageIcon loadImageFromResources() {
         try {
             // Путь к файлу фотографии в папке resources
-            return new ImageIcon("src/resources/avatar.jpg");
+            return new ImageIcon("Java/src/resources/avatar.jpg");
         } catch (Exception e) {
             return null;
         }

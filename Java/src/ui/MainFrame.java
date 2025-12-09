@@ -8,7 +8,6 @@ import util.FileImporter;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
