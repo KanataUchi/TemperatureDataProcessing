@@ -6,7 +6,7 @@ import javax.swing.*;
  * Содержит точку входа в программу - метод main().
  * Запускает стартовый экран приложения.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class Main {

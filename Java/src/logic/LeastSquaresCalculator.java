@@ -8,7 +8,7 @@ import java.util.List;
  * для вычисления коэффициентов линейной регрессии.
  * Используется для аппроксимации экспериментальных данных линейной функцией.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class LeastSquaresCalculator {

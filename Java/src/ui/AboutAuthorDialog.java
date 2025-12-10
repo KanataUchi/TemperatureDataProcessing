@@ -7,7 +7,7 @@ import java.awt.*;
  * Диалоговое окно "Об авторе" с информацией о разработчике программы.
  * Содержит фото автора, контактные данные и информацию об образовании.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class AboutAuthorDialog extends JDialog {

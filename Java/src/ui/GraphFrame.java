@@ -10,7 +10,7 @@ import java.util.List;
  * Показывает экспериментальные точки, аппроксимирующую прямую
  * и интерполяционные точки на графике.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class GraphFrame extends JFrame {

@@ -7,7 +7,7 @@ import java.awt.*;
  * Диалоговое окно "О программе" с информацией о функционале приложения.
  * Содержит описание возможностей программы и версию.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class AboutProgramDialog extends JDialog {

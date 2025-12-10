@@ -16,7 +16,7 @@ import java.util.List;
  * Использует библиотеку Apache POI для работы с Excel файлами.
  * Экспортирует экспериментальные, интерполяционные и пользовательские точки.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class FileExporter {

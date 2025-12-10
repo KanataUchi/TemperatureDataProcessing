@@ -16,7 +16,7 @@ import java.util.List;
  * Поддерживает форматы .xlsx и .xls. Ищет данные в формате,
  * соответствующем экспорту из FileExporter.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class FileImporter {

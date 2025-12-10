@@ -6,8 +6,7 @@ package model;
  * - время (в часах)
  * - температура (в градусах Цельсия)
  *
- *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class DataPoint {

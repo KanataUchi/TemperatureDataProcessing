@@ -7,7 +7,7 @@ import java.awt.*;
  * Класс SplashScreen представляет собой стартовый экран приложения.
  * Отображает информацию о курсовой работе и университете с прогресс-баром загрузки.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class SplashScreen extends JWindow {

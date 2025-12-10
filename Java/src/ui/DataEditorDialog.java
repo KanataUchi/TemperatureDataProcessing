@@ -10,7 +10,7 @@ import java.util.List;
  * Диалоговое окно для редактирования экспериментальных данных.
  * Позволяет добавлять, удалять и изменять точки данных.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class DataEditorDialog extends JDialog {

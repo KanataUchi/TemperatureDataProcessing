@@ -11,7 +11,7 @@ import java.util.List;
  * Рисует оси координат, экспериментальные точки, аппроксимирующую прямую,
  * интерполяционные и пользовательские точки.
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
  */
 public class GraphPanel extends JPanel {

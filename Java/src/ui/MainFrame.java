@@ -27,11 +27,8 @@ import java.util.Locale;
  * 4. Визуализация данных на графике
  * 5. Импорт/экспорт данных в формате Excel
  *
- * @author Петрущенко Александр Андреевич
+ * @author Petrushchenko A.A.
  * @version 1.0
- * @see DataPoint
- * @see LeastSquaresCalculator
- * @see GraphFrame
  */
 public class MainFrame extends JFrame {
     // Экспериментальные данные (время и температура)
